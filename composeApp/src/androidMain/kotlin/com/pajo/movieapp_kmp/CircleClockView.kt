@@ -9,6 +9,8 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 import java.lang.Float.min
+import kotlin.math.cos
+import kotlin.math.sin
 
 class CircleView @JvmOverloads constructor(
     context: Context,
@@ -37,6 +39,22 @@ class CircleView @JvmOverloads constructor(
     private val arcRect = RectF()
 
     private var progress = 0.5f   // 0f..1f
+    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
+        textSize = 40f
+        textAlign = Paint.Align.CENTER
+    }
+    private val majorTickPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
+        strokeWidth = 5f
+        strokeCap = Paint.Cap.ROUND
+    }
+
+    private val minorTickPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.GRAY
+        strokeWidth = 3f
+        strokeCap = Paint.Cap.ROUND
+    }
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
@@ -47,7 +65,8 @@ class CircleView @JvmOverloads constructor(
         canvas.drawCircle(cx, cy, radius, paint)
         // Background circle
         canvas.drawCircle(cx, cy, radius, paintBackground)
-
+        // Clock ticks
+        drawClockTicks(canvas, cx, cy, radius-80f)
         // Arc bounds
         arcRect.set(
             cx - radius,
@@ -64,6 +83,8 @@ class CircleView @JvmOverloads constructor(
             false,                // DO NOT use center for stroke
             paintProgress
         )
+        drawNumbers(canvas, cx, cy, radius - 180f)
+        //animateProgress(0.25f)
     }
 
     // Set progress instantly
@@ -86,4 +107,55 @@ class CircleView @JvmOverloads constructor(
             start()
         }
     }
+
+    private fun drawNumbers(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        textRadius: Float
+    ) {
+        val textHeightOffset =
+            (textPaint.descent() + textPaint.ascent()) / 2
+
+        for (i in 1..12) {
+            val angleDeg = i * 30f - 90f
+            val angleRad = Math.toRadians(angleDeg.toDouble())
+
+            val x = cx + cos(angleRad) * textRadius
+            val y = cy + sin(angleRad) * textRadius - textHeightOffset
+
+            canvas.drawText(i.toString(), x.toFloat(), y.toFloat(), textPaint)
+        }
+    }
+    private fun drawClockTicks(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        radius: Float
+    ) {
+        for (i in 0 until 60) {
+            val isMajor = i % 5 == 0
+
+            val paint = if (isMajor) majorTickPaint else minorTickPaint
+            val tickLength = if (isMajor) 30f else 15f
+
+            val angleDeg = i * 6f - 90f
+            val angleRad = Math.toRadians(angleDeg.toDouble())
+
+            val startX = cx + cos(angleRad) * (radius - tickLength)
+            val startY = cy + sin(angleRad) * (radius - tickLength)
+
+            val endX = cx + cos(angleRad) * radius
+            val endY = cy + sin(angleRad) * radius
+
+            canvas.drawLine(
+                startX.toFloat(),
+                startY.toFloat(),
+                endX.toFloat(),
+                endY.toFloat(),
+                paint
+            )
+        }
+    }
+
 }
